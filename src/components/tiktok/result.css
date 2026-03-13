@@ -1,0 +1,46 @@
+/* ===== Account Card ===== */
+.account-card {
+  display: flex;
+  gap: 14px;
+  background: #111;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+};
+
+.account-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-content {
+  flex: 1;
+}
+
+.account-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.profile-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #ff4331;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* ===== Result Layout ===== */
+.result-empty {
+  opacity: 0.7;
+}

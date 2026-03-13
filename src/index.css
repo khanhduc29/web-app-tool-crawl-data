@@ -1,0 +1,33 @@
+* {
+  box-sizing: border-box;
+}
+
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, 
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #f5f7fb;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== ResultList scroll + fixed pagination ===== */
+
+.result-list-root {
+  height: 100%;              /* ⬅️ QUAN TRỌNG */
+  display: flex;
+  flex-direction: column;
+}
+
+.result-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.result-list-pagination {
+  border-top: 1px solid #1e293b;
+  padding: 10px 0;
+}

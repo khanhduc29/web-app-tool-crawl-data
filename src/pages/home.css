@@ -1,0 +1,342 @@
+/* =========================
+   GLOBAL
+========================= */
+.home {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0b2cff, #061a6b);
+  color: #ffffff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+/* =========================
+   HERO
+========================= */
+.hero {
+  min-height: 100vh;
+  padding: 100px 80px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  gap: 64px;
+}
+
+.hero-left h1 {
+  font-size: 64px;
+  line-height: 1.1;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.hero-left h1 span {
+  color: #ffcc00;
+}
+
+.hero-left p {
+  font-size: 18px;
+  max-width: 520px;
+  opacity: 0.9;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.hero-actions {
+  margin-top: 36px;
+  display: flex;
+  gap: 16px;
+}
+
+.btn-primary {
+  background: #ff4d4f;
+  color: #fff;
+  padding: 14px 30px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255, 77, 79, 0.4);
+}
+
+.btn-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 14px 30px;
+  border-radius: 12px;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* =========================
+   VIDEO
+========================= */
+.hero-right {
+  position: relative;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.45);
+  animation: float 6s ease-in-out infinite;
+}
+
+.video-wrapper iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* =========================
+   FEATURES
+========================= */
+.features {
+  padding: 120px 80px;
+  background: #050f3a;
+}
+
+.features h2 {
+  font-size: 40px;
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 36px;
+  border-radius: 22px;
+  transition: all 0.3s ease;
+}
+
+.feature-card h3 {
+  margin-bottom: 12px;
+}
+
+.feature-card p {
+  opacity: 0.85;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================
+   SOCIALS
+========================= */
+.socials {
+  padding: 120px 80px;
+  background: linear-gradient(180deg, #050f3a, #040b2a);
+  text-align: center;
+}
+
+.socials h2 {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.socials p {
+  opacity: 0.8;
+  margin-bottom: 56px;
+}
+
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.social-item {
+  padding: 26px;
+  border-radius: 20px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.social-item:hover {
+  transform: translateY(-6px) scale(1.03);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* BRAND COLORS */
+.facebook {
+  color: #1877f2;
+}
+.instagram {
+  color: #e1306c;
+}
+.threads {
+  color: #ffffff;
+}
+.tiktok {
+  color: #25f4ee;
+}
+.youtube {
+  color: #ff0000;
+}
+.twitter {
+  color: #1da1f2;
+}
+.linkedin {
+  color: #0a66c2;
+}
+.pinterest {
+  color: #e60023;
+}
+.telegram {
+  color: #2aabee;
+}
+.zalo {
+  color: #0068ff;
+}
+
+/* =========================
+   CTA
+========================= */
+.cta {
+  padding: 120px 40px;
+  text-align: center;
+}
+
+.cta h2 {
+  font-size: 36px;
+  margin-bottom: 32px;
+}
+/* =========================
+   CONTACT FORM
+========================= */
+.contact {
+  padding: 120px 80px;
+  background: #050f3a;
+}
+
+.contact-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.contact-left h2 {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.contact-left p {
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+/* FORM */
+.contact-form {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  padding: 40px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.contact-form input,
+.contact-form textarea {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.contact-form button {
+  margin-top: 8px;
+  align-self: flex-start;
+}
+
+/* =========================
+   RESPONSIVE CONTACT
+========================= */
+@media (max-width: 1024px) {
+  .contact {
+    padding: 80px 32px;
+  }
+
+  .contact-wrapper {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .contact-form button {
+    align-self: center;
+  }
+}
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 1024px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 80px 32px;
+    text-align: center;
+  }
+
+  .hero-left h1 {
+    font-size: 48px;
+  }
+
+  .hero-left p {
+    margin: 0 auto;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .social-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

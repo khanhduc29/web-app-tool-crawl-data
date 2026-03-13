@@ -1,0 +1,117 @@
+{
+  "name": "maps-crawler-ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "electron": "electron .",
+    "build": "vite build",
+    "build:electron": "node scripts/build.cjs",
+    "dist": "electron-builder",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-icons": "^5.6.0",
+    "react-router-dom": "^7.13.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/file-saver": "^2.0.7",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^41.0.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "vite": "^7.2.4"
+  },
+  "build": {
+    "appId": "crawler.tool",
+    "productName": "CrawlerTool",
+    "directories": {
+      "output": "release"
+    },
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!node_modules",
+      "!backend",
+      "!workers",
+      "!portable",
+      "!release",
+      "!src",
+      "!public",
+      "!profiles",
+      "!insta_session",
+      "!scripts"
+    ],
+    "extraResources": [
+      {
+        "from": "portable/node",
+        "to": "portable/node",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "portable/python",
+        "to": "portable/python",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "portable/playwright-browsers",
+        "to": "portable/playwright-browsers",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "backend/request-task-be",
+        "to": "backend/request-task-be",
+        "filter": [
+          "**/*",
+          "!.git/**",
+          "!.gitignore",
+          "!profiles/**",
+          "!package-lock.json"
+        ]
+      },
+      {
+        "from": "workers",
+        "to": "workers",
+        "filter": [
+          "**/*",
+          "!**/.git/**",
+          "!**/venv/**",
+          "!**/__pycache__/**",
+          "!**/profiles/**",
+          "!**/data/**",
+          "!**/insta_session/**",
+          "!**/*.pyc"
+        ]
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    },
+    "forceCodeSigning": false,
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "compression": "maximum"
+  }
+}

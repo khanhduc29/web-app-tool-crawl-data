@@ -1,0 +1,114 @@
+.header {
+  height: 64px;
+  background: linear-gradient(90deg, #0b2cff, #3b6cff);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 24px;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+
+.header-left {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+/* =========================
+   NAV ITEM (GIỮ NGUYÊN)
+========================= */
+.nav-item {
+  position: relative;
+  cursor: pointer;
+}
+
+/* =========================
+   MEGA MENU (FIX)
+========================= */
+.mega-menu {
+    position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 1100px; /* hoặc 1000px tuỳ bạn */
+  max-width: 95vw;
+
+  background: #111;
+  color: #fff;
+  gap: 40px;
+  padding: 32px 40px;
+  border-radius: 14px;
+  z-index: 9999;
+}
+
+/* VÙNG ĐỆM CHỐNG MẤT HOVER */
+.mega-menu::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+}
+
+/* =========================
+   MENU CONTENT (GIỮ NGUYÊN)
+========================= */
+.menu-col h4 {
+  margin-bottom: 12px;
+}
+
+.menu-col a {
+  /* display: block; */
+  color: #ccc;
+  text-decoration: none;
+  /* margin-bottom: 8px; */
+}
+
+.menu-col a:hover {
+  color: #fff;
+}
+
+/* =========================
+   HEADER RIGHT (GIỮ NGUYÊN)
+========================= */
+.header-right {
+  display: flex;
+  gap: 20px;
+}
+
+.btn-primary {
+  background: #ff4d4f;
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* =========================
+   NAV LINK (GIỮ NGUYÊN)
+========================= */
+.nav-link {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  opacity: 0.85;
+}
+
+/* =========================
+   NEO MEGA MENU (GIỮ)
+========================= */
+.nav-item.has-mega-menu {
+  position: relative;
+}
