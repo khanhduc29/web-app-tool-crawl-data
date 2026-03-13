@@ -70,10 +70,20 @@ function spawnWorker(name, command, args, options = {}) {
   const env = {
     ...process.env,
     ...(options.env || {}),
-    PYTHONPATH: options.cwd || "",
   };
 
-  const worker = spawn(command, args, {
+  // For Python workers: inject sys.path so portable Python (._pth) can find local modules
+  let finalCommand = command;
+  let finalArgs = args;
+  const isPython = command.toLowerCase().includes("python");
+  if (isPython && options.cwd && args.length > 0) {
+    const scriptPath = args[0].replace(/\\/g, "\\\\");
+    const cwdPath = options.cwd.replace(/\\/g, "\\\\");
+    const pyCode = `import sys; sys.path.insert(0, r'${cwdPath}'); exec(open(r'${scriptPath}', encoding='utf-8').read())`;
+    finalArgs = ["-c", pyCode];
+  }
+
+  const worker = spawn(finalCommand, finalArgs, {
     ...options,
     env,
     stdio: ["pipe", "pipe", "pipe"],
