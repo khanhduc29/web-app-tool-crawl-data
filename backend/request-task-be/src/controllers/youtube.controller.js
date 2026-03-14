@@ -1,5 +1,7 @@
 import { createYouTubeScan } from "../services/youtube.service.js";
 import YouTubeTask from "../models/YouTubeTask.model.js";
+import YouTubeRequest from "../models/YouTubeRequest.model.js";
+import { syncRequestStatus } from "../utils/syncRequestStatus.js";
 
 /**
  * POST /api/youtube/scan
@@ -97,6 +99,11 @@ export async function updateYouTubeTask(req, res) {
         success: false,
         message: "YouTube task not found",
       });
+    }
+
+    // Sync parent request status
+    if (task.request_id) {
+      await syncRequestStatus(YouTubeTask, YouTubeRequest, "request_id", task.request_id);
     }
 
     return res.json({

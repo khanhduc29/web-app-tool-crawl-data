@@ -2,6 +2,7 @@ import { createGoogleMapJob } from "../services/googleMap.service.js";
 import GoogleMapTask from "../models/GoogleMapTask.model.js";
 import GoogleMapJobModel from "../models/GoogleMapJob.model.js";
 import GoogleMapTaskModel from "../models/GoogleMapTask.model.js";
+import { syncRequestStatus } from "../utils/syncRequestStatus.js";
 
 export async function createGoogleMapJobController(req, res) {
   try {
@@ -86,6 +87,11 @@ export async function updateGoogleMapTask(req, res) {
         success: false,
         message: "Google Map task not found",
       });
+    }
+
+    // Sync parent job status
+    if (task.job_id) {
+      await syncRequestStatus(GoogleMapTask, GoogleMapJobModel, "job_id", task.job_id);
     }
 
     res.json({

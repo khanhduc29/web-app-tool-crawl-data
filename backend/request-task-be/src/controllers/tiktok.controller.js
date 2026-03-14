@@ -1,5 +1,7 @@
 import { createTikTokScan } from "../services/tiktok.service.js";
 import TikTokTask from "../models/TikTokTask.model.js";
+import TikTokRequest from "../models/TikTokRequest.model.js";
+import { syncRequestStatus } from "../utils/syncRequestStatus.js";
 
 export async function createTikTokScanController(req, res) {
   try {
@@ -89,6 +91,9 @@ export async function updateTikTokTask(req, res) {
       success: true,
       data: task,
     });
+
+    // Sync parent request status
+    await syncRequestStatus(TikTokTask, TikTokRequest, "request_id", task.request_id);
   } catch (err) {
     res.status(500).json({
       success: false,

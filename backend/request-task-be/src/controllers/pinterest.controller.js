@@ -5,6 +5,9 @@ import {
   updatePinterestTaskSuccess,
   updatePinterestTaskError,
 } from "../services/pinterest.service.js";
+import PinterestTask from "../models/PinterestTask.model.js";
+import PinterestRequest from "../models/PinterestRequest.model.js";
+import { syncRequestStatus } from "../utils/syncRequestStatus.js";
 
 /**
  * CREATE SCAN
@@ -80,6 +83,11 @@ export async function updateTaskError(req, res) {
 
     const task = await updatePinterestTaskError(task_id, error);
 
+    // Sync parent request status
+    if (task?.request_id) {
+      await syncRequestStatus(PinterestTask, PinterestRequest, "request_id", task.request_id);
+    }
+
     res.json({
       success: true,
       data: task,
@@ -100,6 +108,11 @@ export async function updateTaskSuccess(req, res) {
     const { task_id, results } = req.body;
 
     const task = await updatePinterestTaskSuccess(task_id, results);
+
+    // Sync parent request status
+    if (task?.request_id) {
+      await syncRequestStatus(PinterestTask, PinterestRequest, "request_id", task.request_id);
+    }
 
     res.json({
       success: true,

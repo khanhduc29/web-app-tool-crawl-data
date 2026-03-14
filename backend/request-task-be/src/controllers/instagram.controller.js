@@ -6,6 +6,8 @@ import {
   updateInstagramTaskSuccess,
   updateInstagramTaskError,
 } from "../services/instagram.service.js";
+import InstagramRequest from "../models/InstagramRequest.model.js";
+import { syncRequestStatus } from "../utils/syncRequestStatus.js";
 
 /**
  * CREATE SCAN
@@ -81,6 +83,11 @@ export async function updateTaskSuccess(req, res) {
 
     const task = await updateInstagramTaskSuccess(task_id, results);
 
+    // Sync parent request status
+    if (task?.request_id) {
+      await syncRequestStatus(InstagramTaskModel, InstagramRequest, "request_id", task.request_id);
+    }
+
     res.json({
       success: true,
       data: task,
@@ -101,6 +108,11 @@ export async function updateTaskError(req, res) {
     const { task_id, error } = req.body;
 
     const task = await updateInstagramTaskError(task_id, error);
+
+    // Sync parent request status
+    if (task?.request_id) {
+      await syncRequestStatus(InstagramTaskModel, InstagramRequest, "request_id", task.request_id);
+    }
 
     res.json({
       success: true,

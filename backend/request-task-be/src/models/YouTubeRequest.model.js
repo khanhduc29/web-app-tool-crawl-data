@@ -19,6 +19,22 @@ const YouTubeRequestSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    success_tasks: {
+      type: Number,
+      default: 0,
+    },
+
+    error_tasks: {
+      type: Number,
+      default: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["pending", "running", "success", "error"],
+      default: "pending",
+    },
   },
   {
     timestamps: true,
