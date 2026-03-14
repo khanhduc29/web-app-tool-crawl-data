@@ -57,6 +57,8 @@ export default function PinterestTool() {
 
         if (task.result) {
           setData(task.result);
+          setTaskStatus("success");
+          setCurrentKeyword(task.input?.keyword || "");
         }
       }
     } catch (err) {
@@ -246,6 +248,21 @@ export default function PinterestTool() {
         <div style={{ margin: "12px 0", padding: "12px 16px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: 14 }}>
           <strong>❌ Lỗi:</strong> {errorMsg}
           <button onClick={() => { setTaskStatus("idle"); setErrorMsg(""); }} style={{ marginLeft: 12, background: "none", border: "none", color: "#fca5a5", cursor: "pointer", textDecoration: "underline" }}>Đóng</button>
+        </div>
+      )}
+
+      {/* Status badge */}
+      {taskStatus !== "idle" && !loading && (
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, margin: "8px 0 12px",
+          background: taskStatus === "success" ? "rgba(34,197,94,0.15)" : taskStatus === "error" ? "rgba(239,68,68,0.15)" : "rgba(251,191,36,0.15)",
+          color: taskStatus === "success" ? "#4ade80" : taskStatus === "error" ? "#f87171" : "#fbbf24",
+          border: `1px solid ${taskStatus === "success" ? "rgba(34,197,94,0.3)" : taskStatus === "error" ? "rgba(239,68,68,0.3)" : "rgba(251,191,36,0.3)"}`,
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+          {taskStatus === "success" && "✅ Hoàn thành"}
+          {taskStatus === "error" && "❌ Lỗi"}
         </div>
       )}
 

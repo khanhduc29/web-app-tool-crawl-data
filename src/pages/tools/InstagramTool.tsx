@@ -76,8 +76,16 @@ export default function InstagramTool() {
 
       const task = data.data[0];
 
+      // Set status badge based on latest task
       if (task.status === "success" && task.result) {
+        setTaskStatus("success");
         setProfiles([task.result]);
+      } else if (task.status === "error") {
+        setTaskStatus("error");
+        setErrorMsg("Task bị lỗi. Vui lòng thử lại.");
+      } else if (task.status === "pending") {
+        setTaskStatus("pending");
+        setLoading(true);
       }
     } catch (err) {
       console.error(err);
@@ -221,6 +229,23 @@ export default function InstagramTool() {
         </div>
 
         <div className="insta-right">
+          {/* Status badge */}
+          {taskStatus !== "idle" && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 12,
+              background: taskStatus === "success" ? "rgba(34,197,94,0.15)" : taskStatus === "error" ? "rgba(239,68,68,0.15)" : taskStatus === "running" ? "rgba(59,130,246,0.15)" : "rgba(251,191,36,0.15)",
+              color: taskStatus === "success" ? "#4ade80" : taskStatus === "error" ? "#f87171" : taskStatus === "running" ? "#60a5fa" : "#fbbf24",
+              border: `1px solid ${taskStatus === "success" ? "rgba(34,197,94,0.3)" : taskStatus === "error" ? "rgba(239,68,68,0.3)" : taskStatus === "running" ? "rgba(59,130,246,0.3)" : "rgba(251,191,36,0.3)"}`,
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+              {taskStatus === "pending" && "⏳ Đang chờ xử lý"}
+              {taskStatus === "running" && "🔄 Đang cào dữ liệu"}
+              {taskStatus === "success" && "✅ Hoàn thành"}
+              {taskStatus === "error" && "❌ Lỗi"}
+            </div>
+          )}
+
           {profiles.length === 0 && !loading && <p>No profiles yet</p>}
 
           {profiles.map((item) => {

@@ -45,8 +45,52 @@ export default function YouTubeTool() {
   };
 
   useEffect(() => {
+    stopPolling();
+    setTaskStatus("idle");
+    setErrorMsg("");
+
     const fetchLatestSuccessTask = async () => {
       try {
+        // 1. Check absolute latest task for status badge
+        const latestRes = await axios.get(`${API_BASE_URL}/api/youtube/task/latest`, {
+          params: { scan_type: activeTab },
+        });
+        const latestTask = latestRes.data?.data;
+        if (latestTask) {
+          const st = latestTask.status;
+          if (st === "pending" || st === "running") {
+            setTaskStatus(st);
+            setLoading(true);
+            // Resume polling
+            pollingRef.current = setInterval(async () => {
+              try {
+                const r = await axios.get(`${API_BASE_URL}/api/youtube/task/latest`, {
+                  params: { scan_type: activeTab },
+                });
+                const td = r.data?.data;
+                if (!td) return;
+                if (td.status === "success") {
+                  stopPolling();
+                  setTask(td);
+                  setResult(td.result || null);
+                  setTaskStatus("success");
+                  setLoading(false);
+                } else if (td.status === "error") {
+                  stopPolling();
+                  setTaskStatus("error");
+                  setErrorMsg(td.error_message || "Task bị lỗi");
+                  setLoading(false);
+                }
+              } catch (e) { console.error(e); }
+            }, 3000);
+            return;
+          } else if (st === "error") {
+            setTaskStatus("error");
+            setErrorMsg(latestTask.error_message || "Task bị lỗi");
+          }
+        }
+
+        // 2. Load success result as before
         const res = await axios.get(`${API_BASE_URL}/api/youtube/task/latest`, {
           params: {
             scan_type: activeTab,
@@ -59,6 +103,7 @@ export default function YouTubeTool() {
 
           setTask(taskData);
           setResult(taskData?.result || null);
+          if (taskData) setTaskStatus("success");
 
           const input = taskData?.input || {};
 
@@ -96,6 +141,8 @@ export default function YouTubeTool() {
     };
 
     fetchLatestSuccessTask();
+
+    return () => stopPolling();
   }, [activeTab]);
 
   const handleSubmit = async () => {
@@ -290,6 +337,23 @@ export default function YouTubeTool() {
         </div>
 
         <div className="yt-preview">
+          {/* Status badge */}
+          {taskStatus !== "idle" && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 12,
+              background: taskStatus === "success" ? "rgba(34,197,94,0.15)" : taskStatus === "error" ? "rgba(239,68,68,0.15)" : taskStatus === "running" ? "rgba(59,130,246,0.15)" : "rgba(251,191,36,0.15)",
+              color: taskStatus === "success" ? "#4ade80" : taskStatus === "error" ? "#f87171" : taskStatus === "running" ? "#60a5fa" : "#fbbf24",
+              border: `1px solid ${taskStatus === "success" ? "rgba(34,197,94,0.3)" : taskStatus === "error" ? "rgba(239,68,68,0.3)" : taskStatus === "running" ? "rgba(59,130,246,0.3)" : "rgba(251,191,36,0.3)"}`,
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+              {taskStatus === "pending" && "⏳ Đang chờ xử lý"}
+              {taskStatus === "running" && "🔄 Đang cào dữ liệu"}
+              {taskStatus === "success" && "✅ Hoàn thành"}
+              {taskStatus === "error" && "❌ Lỗi"}
+            </div>
+          )}
+
           {result && result.length > 0 && (
             <div className="yt-download">
               <button onClick={downloadJSON}>

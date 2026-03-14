@@ -423,7 +423,7 @@ export default function App() {
                   <th>Address</th>
                   {/* <th>Deep scan</th> */}
                   <th>Deep website</th>
-                  {/* <th>Status</th> */}
+                  <th>Trạng thái</th>
                   <th></th>
                 </tr>
               </thead>
@@ -468,7 +468,21 @@ export default function App() {
                     </td>
 
                     {/* status */}
-                    {/* <td>{job.status}</td> */}
+                    <td>
+                      <span style={{
+                        padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600,
+                        background: job.status === "success" ? "rgba(34,197,94,0.15)" : job.status === "error" ? "rgba(239,68,68,0.15)" : job.status === "processing" ? "rgba(59,130,246,0.15)" : "rgba(251,191,36,0.15)",
+                        color: job.status === "success" ? "#4ade80" : job.status === "error" ? "#f87171" : job.status === "processing" ? "#60a5fa" : "#fbbf24",
+                      }}>
+                        {job.status === "pending" && "⏳ Chờ"}
+                        {job.status === "processing" && "🔄 Đang chạy"}
+                        {job.status === "running" && "🔄 Đang chạy"}
+                        {job.status === "success" && "✅ Xong"}
+                        {job.status === "error" && "❌ Lỗi"}
+                        {job.status === "cancel" && "🚫 Hủy"}
+                        {!job.status && "⏳ Chờ"}
+                      </span>
+                    </td>
 
                     {/* action */}
                     <td>

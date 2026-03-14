@@ -156,6 +156,29 @@ export default function TikTokTool() {
     try {
       setLoading(true);
 
+      // 1. Fetch the absolute latest task (any status) to set badge
+      const latestRes = await fetch(
+        `${API_BASE_URL}/api/tiktok/task/latest?scan_type=${scanType}`,
+      );
+      if (latestRes.ok) {
+        const latestJson = await latestRes.json();
+        const latestTask = latestJson?.data;
+        if (latestTask) {
+          const st = latestTask.status;
+          if (st === "pending" || st === "running") {
+            setTaskStatus(st);
+            startPolling(scanType);
+            return; // don't setLoading(false) — polling will handle it
+          } else if (st === "success") {
+            setTaskStatus("success");
+          } else if (st === "error") {
+            setTaskStatus("error");
+            setErrorMessage(latestTask.error_message || "Task bị lỗi");
+          }
+        }
+      }
+
+      // 2. Fetch latest success task for results
       const res = await fetch(
         `${API_BASE_URL}/api/tiktok/task/latest?scan_type=${scanType}&status=success`,
       );
@@ -543,6 +566,23 @@ export default function TikTokTool() {
 
         {/* RIGHT RESULT */}
         <div style={right}>
+          {/* Status badge */}
+          {taskStatus !== "idle" && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 12,
+              background: taskStatus === "success" ? "rgba(34,197,94,0.15)" : taskStatus === "error" ? "rgba(239,68,68,0.15)" : taskStatus === "running" ? "rgba(59,130,246,0.15)" : "rgba(251,191,36,0.15)",
+              color: taskStatus === "success" ? "#4ade80" : taskStatus === "error" ? "#f87171" : taskStatus === "running" ? "#60a5fa" : "#fbbf24",
+              border: `1px solid ${taskStatus === "success" ? "rgba(34,197,94,0.3)" : taskStatus === "error" ? "rgba(239,68,68,0.3)" : taskStatus === "running" ? "rgba(59,130,246,0.3)" : "rgba(251,191,36,0.3)"}`,
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor", display: "inline-block", animation: taskStatus === "running" || taskStatus === "pending" ? "pulse 1.5s infinite" : "none" }} />
+              {taskStatus === "pending" && "⏳ Đang chờ xử lý"}
+              {taskStatus === "running" && "🔄 Đang cào dữ liệu"}
+              {taskStatus === "success" && "✅ Hoàn thành"}
+              {taskStatus === "error" && "❌ Lỗi"}
+            </div>
+          )}
+
           {/* Error banner */}
           {taskStatus === "error" && (
             <div style={errorBanner}>
