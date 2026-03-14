@@ -220,8 +220,10 @@ export default function PinterestTool() {
     setHistoryOpen(false);
   };
   return (
-    <div className="pinterest-tool">
+    <div className="tool-page">
+      <div className="pinterest-tool">
       <h1>Pinterest Crawler</h1>
+      <p className="tool-subtitle">Tìm kiếm và cào dữ liệu từ Pinterest</p>
 
       <div className="pinterest-search">
         <input
@@ -383,6 +385,7 @@ export default function PinterestTool() {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 }

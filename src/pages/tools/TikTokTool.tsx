@@ -658,126 +658,148 @@ function Tab({ label, value, tab, setTab, onChange }: any) {
 
 /* ================= STYLES ================= */
 
-const page = {
-  padding: 60,
+const page: React.CSSProperties = {
+  padding: "40px 48px",
   minHeight: "100vh",
-  background: "linear-gradient(180deg,#0b2cff,#061a6b)",
-  color: "#fff",
+  background: "linear-gradient(160deg, #0a0f1e 0%, #111936 50%, #0d1229 100%)",
+  color: "#e2e8f0",
 };
 
-const title = { fontSize: 42, marginBottom: 8 };
-const subtitle = { opacity: 0.85, marginBottom: 32 };
+const title: React.CSSProperties = { fontSize: 32, fontWeight: 700, marginBottom: 6, background: "linear-gradient(135deg, #fff, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" };
+const subtitle: React.CSSProperties = { opacity: 0.5, fontSize: 15, marginBottom: 28 };
 
-const tabs = {
+const tabs: React.CSSProperties = {
   display: "flex",
-  gap: 12,
-  flexWrap: "wrap" as const,
-  marginBottom: 32,
+  gap: 8,
+  flexWrap: "wrap",
+  marginBottom: 28,
 };
 
-const tabBtn = {
-  padding: "10px 18px",
+const tabBtn: React.CSSProperties = {
+  padding: "9px 18px",
   borderRadius: 999,
-  border: "none",
-  background: "rgba(255,255,255,0.15)",
-  color: "#fff",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.06)",
+  color: "rgba(255,255,255,0.65)",
   cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 500,
+  transition: "all 0.2s ease",
 };
 
-const tabActive = { background: "#FF4331" };
+const tabActive: React.CSSProperties = { background: "linear-gradient(135deg, #FF4331, #ff6b5a)", color: "#fff", borderColor: "transparent", boxShadow: "0 4px 12px rgba(255,67,49,0.35)" };
 
-const layout = {
+const layout: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 888px",
-  gap: 60,
-  //   maxWidth: 1200,
+  gridTemplateColumns: "340px 1fr",
+  gap: 32,
+  alignItems: "start",
 };
 
-const left = {
+const left: React.CSSProperties = {
   display: "flex",
-  flexDirection: "column" as const,
-  gap: 14,
+  flexDirection: "column",
+  gap: 12,
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 16,
+  padding: "28px 24px",
+  backdropFilter: "blur(12px)",
 };
 
-const right = {};
+const right: React.CSSProperties = { minHeight: 360 };
 
-const inputStyle = {
-  padding: "14px 16px",
-  borderRadius: 12,
-  border: "none",
+const inputStyle: React.CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.06)",
+  color: "#e2e8f0",
   outline: "none",
+  fontSize: 14,
+  width: "100%",
 };
 
-const btn = {
+const btn: React.CSSProperties = {
   marginTop: 8,
-  background: "#FF4331",
+  background: "linear-gradient(135deg, #FF4331, #ff6b5a)",
   border: "none",
   color: "#fff",
-  padding: "14px 24px",
-  borderRadius: 12,
+  padding: "13px 24px",
+  borderRadius: 10,
   cursor: "pointer",
+  fontWeight: 600,
+  fontSize: 15,
+  width: "100%",
+  transition: "all 0.25s ease",
 };
-const loadingWrap = {
-  minHeight: 360,
+const loadingWrap: React.CSSProperties = {
+  minHeight: 300,
   display: "flex",
-  flexDirection: "column" as const,
+  flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  color: "#fff",
+  gap: 16,
+  color: "rgba(255,255,255,0.7)",
 };
 
-const spinner = {
-  width: 42,
-  height: 42,
-  border: "4px solid rgba(255,255,255,0.25)",
-  borderTop: "4px solid #FF4331",
+const spinner: React.CSSProperties = {
+  width: 40,
+  height: 40,
+  border: "3px solid rgba(255,255,255,0.15)",
+  borderTop: "3px solid #FF4331",
   borderRadius: "50%",
-  animation: "spin 1s linear infinite",
+  animation: "spin 0.8s linear infinite",
 };
-const downloadBtn = {
+const downloadBtn: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 8,
-  padding: "8px 14px",
+  padding: "9px 16px",
   borderRadius: 8,
   border: "none",
   cursor: "pointer",
-  background: "#6366f1",
+  background: "linear-gradient(135deg, #6366f1, #7c3aed)",
   color: "#fff",
+  fontSize: 13,
+  fontWeight: 500,
 };
 
-const downloadBtnExcel = {
+const downloadBtnExcel: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 8,
-  padding: "8px 14px",
+  padding: "9px 16px",
   borderRadius: 8,
   border: "none",
   cursor: "pointer",
-  background: "#16a34a",
+  background: "linear-gradient(135deg, #16a34a, #15803d)",
   color: "#fff",
+  fontSize: 13,
+  fontWeight: 500,
 };
 
 const errorBanner: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: 14,
-  padding: "16px 20px",
+  padding: "14px 18px",
   borderRadius: 12,
-  background: "rgba(239,68,68,0.2)",
-  border: "1px solid rgba(239,68,68,0.5)",
+  background: "rgba(239,68,68,0.12)",
+  border: "1px solid rgba(239,68,68,0.3)",
   color: "#fca5a5",
   marginBottom: 16,
 };
 
 const retryBtn: React.CSSProperties = {
-  padding: "8px 16px",
+  padding: "6px 14px",
   borderRadius: 8,
-  border: "1px solid rgba(255,255,255,0.3)",
-  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "rgba(255,255,255,0.08)",
   color: "#fff",
   cursor: "pointer",
   whiteSpace: "nowrap",
+  fontSize: 13,
 };
 function LoadingPanel({ taskStatus }: { taskStatus: string }) {
   const statusText: Record<string, string> = {

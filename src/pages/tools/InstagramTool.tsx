@@ -174,9 +174,12 @@ export default function InstagramTool() {
 
   return (
     <>
+      <div className="tool-page">
+        <h1>Instagram Crawler</h1>
+        <p className="tool-subtitle">Quét thông tin profile Instagram</p>
       <div className="insta-layout" ref={ref}>
         <div className="insta-left">
-          <h2 className="insta-title">Instagram Crawler</h2>
+          <h2 className="insta-title">Cấu hình quét</h2>
 
           <input
             className="insta-input"
@@ -352,6 +355,7 @@ export default function InstagramTool() {
             <span>{new Date(task.createdAt).toLocaleString()}</span>
           </div>
         ))}
+      </div>
       </div>
     </>
   );
