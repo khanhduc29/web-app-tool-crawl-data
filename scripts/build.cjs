@@ -356,9 +356,31 @@ async function main() {
     },
   });
 
+  // Phase A.5: Clean session/login data from unpacked dir (DO NOT ship to customers)
+  console.log("[*] Cleaning session/login data from output...");
+  const outputResourcesDir = path.join(unpackedDir, "resources");
+  const sessionFiles = [
+    path.join(outputResourcesDir, "workers", "titok_crawler", "tiktok_session.json"),
+    path.join(outputResourcesDir, "workers", "titok_crawler", "login_debug.py"),
+  ];
+  const sessionDirs = [
+    path.join(outputResourcesDir, "workers", "Tool-Instagram", "insta_session"),
+  ];
+  for (const f of sessionFiles) {
+    if (fs.existsSync(f)) {
+      fs.unlinkSync(f);
+      console.log(`  [✓] Removed ${path.basename(f)}`);
+    }
+  }
+  for (const d of sessionDirs) {
+    if (fs.existsSync(d)) {
+      fs.rmSync(d, { recursive: true, force: true });
+      console.log(`  [✓] Removed ${path.basename(d)}/`);
+    }
+  }
+
   // Phase B: Copy backend node_modules (electron-builder excludes them)
   console.log("[*] Phase B: Copying backend node_modules...");
-  const outputResourcesDir = path.join(unpackedDir, "resources");
   const backendSrc = path.join(ROOT, "backend", "request-task-be", "node_modules");
   const backendDest = path.join(outputResourcesDir, "backend", "request-task-be", "node_modules");
   if (fs.existsSync(backendSrc)) {

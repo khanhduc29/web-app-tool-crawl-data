@@ -26,6 +26,12 @@ insta_session/
 data/
 *.local
 
+# Session / login data (DO NOT ship to customers)
+tiktok_session.json
+**/tiktok_session.json
+**/insta_session/
+**/login_debug.py
+
 # Python
 __pycache__/
 *.pyc

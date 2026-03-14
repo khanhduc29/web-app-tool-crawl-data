@@ -108,6 +108,7 @@ export default function App() {
   const [pageSize, setPageSize] = useState(10);
   const [onlyHasSocial, setOnlyHasSocial] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   // ===== UI STATE =====
   const [tab, setTab] = useState<Tab>("jobs");
@@ -238,8 +239,9 @@ export default function App() {
 
     try {
       setIsCreating(true);
+      setCreateError("");
 
-      await fetch(`${API_BASE}/api/google-map/scan`, {
+      const res = await fetch(`${API_BASE}/api/google-map/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -253,8 +255,14 @@ export default function App() {
         }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Server trả về lỗi (${res.status})`);
+      }
+
       setTab("jobs");
       fetchJobs();
+    } catch (err: any) {
+      setCreateError(err?.message || "Không thể tạo job. Vui lòng thử lại.");
     } finally {
       setIsCreating(false);
     }
@@ -375,6 +383,13 @@ export default function App() {
         <button className="run" onClick={createJob} disabled={isCreating}>
           {isCreating ? "Đang tạo job..." : "Bắt đầu quét"}
         </button>
+
+        {createError && (
+          <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: 14 }}>
+            <strong>❌ Lỗi:</strong> {createError}
+            <button onClick={() => setCreateError("")} style={{ marginLeft: 12, background: "none", border: "none", color: "#fca5a5", cursor: "pointer", textDecoration: "underline" }}>Đóng</button>
+          </div>
+        )}
       </div>
 
       {/* RIGHT */}

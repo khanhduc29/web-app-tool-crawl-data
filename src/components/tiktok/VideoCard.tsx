@@ -26,7 +26,18 @@ export default function VideoCard({ data }: Props) {
       <a href={video_url} target="_blank" rel="noreferrer">
         <div className="video-thumb">
           {thumbnail ? (
-            <img src={thumbnail} alt="thumbnail" />
+            <img
+              src={thumbnail}
+              alt="thumbnail"
+              onError={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                img.style.display = "none";
+                const placeholder = document.createElement("div");
+                placeholder.className = "video-thumb-placeholder";
+                placeholder.textContent = "No thumbnail";
+                img.parentElement?.appendChild(placeholder);
+              }}
+            />
           ) : (
             <div className="video-thumb-placeholder">
               No thumbnail

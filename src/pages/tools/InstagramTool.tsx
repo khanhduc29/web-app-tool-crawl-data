@@ -38,6 +38,8 @@ export default function InstagramTool() {
   const [loading, setLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [taskStatus, setTaskStatus] = useState<"idle" | "pending" | "running" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [history, setHistory] = useState<Task[]>([]);
 
@@ -101,8 +103,11 @@ export default function InstagramTool() {
 
     try {
       setLoading(true);
+      setTaskStatus("pending");
+      setErrorMsg("");
+      setProfiles([]);
 
-      await fetch(`${API_BASE}/api/instagram/create-scan`, {
+      const res = await fetch(`${API_BASE}/api/instagram/create-scan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,13 +122,40 @@ export default function InstagramTool() {
         }),
       });
 
-      setUrl("");
+      if (!res.ok) {
+        throw new Error(`Server trả về lỗi (${res.status})`);
+      }
 
-      fetchHistory();
-      fetchResults();
-    } catch (err) {
+      setUrl("");
+      setTaskStatus("running");
+
+      // Poll for result
+      const pollInterval = setInterval(async () => {
+        try {
+          const r = await fetch(`${API_BASE}/api/instagram/tasks?limit=1`);
+          const d: TaskResponse = await r.json();
+          if (!d.success || !d.data.length) return;
+          const task = d.data[0];
+          if (task.status === "success" && task.result) {
+            clearInterval(pollInterval);
+            setProfiles([task.result]);
+            setTaskStatus("success");
+            setLoading(false);
+            fetchHistory();
+          } else if (task.status === "error") {
+            clearInterval(pollInterval);
+            setTaskStatus("error");
+            setErrorMsg("Task bị lỗi. Vui lòng thử lại.");
+            setLoading(false);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 3000);
+    } catch (err: any) {
       console.error(err);
-    } finally {
+      setTaskStatus("error");
+      setErrorMsg(err?.message || "Không thể tạo scan. Vui lòng thử lại.");
       setLoading(false);
     }
   };
@@ -155,7 +187,11 @@ export default function InstagramTool() {
           </label>
 
           <button className="scan-btn" onClick={handleScan} disabled={loading}>
-            {loading ? "Scanning..." : "Scan"}
+            {loading
+              ? taskStatus === "pending" ? "⏳ Đang gửi yêu cầu..."
+              : taskStatus === "running" ? "🔄 Đang cào dữ liệu..."
+              : "Scanning..."
+            : "Scan"}
           </button>
 
           <button
@@ -168,7 +204,20 @@ export default function InstagramTool() {
             Scan History
           </button>
 
-          {loading && <div className="loader"></div>}
+          {loading && (
+            <div className="loader">
+              <p style={{ fontSize: 13, opacity: 0.7, marginTop: 8 }}>
+                Tự động cập nhật mỗi 3 giây
+              </p>
+            </div>
+          )}
+
+          {taskStatus === "error" && (
+            <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: 14 }}>
+              <strong>❌ Lỗi:</strong> {errorMsg}
+              <button onClick={() => { setTaskStatus("idle"); setErrorMsg(""); }} style={{ marginLeft: 12, background: "none", border: "none", color: "#fca5a5", cursor: "pointer", textDecoration: "underline" }}>Đóng</button>
+            </div>
+          )}
         </div>
 
         <div className="insta-right">

@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScanType } from "../../types/tiktokResult";
 import ResultList from "../../components/tiktok/ResultList";
 import { useParams, useNavigate } from "react-router-dom";
@@ -47,6 +47,17 @@ export default function TikTokTool() {
   const [topLimit, setTopLimit] = useState(3);
 
   const [loading, setLoading] = useState(false);
+  const [taskStatus, setTaskStatus] = useState<"idle" | "pending" | "running" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup polling on unmount or tab change
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  };
   useEffect(() => {
     if (tabParam && tabParam !== tab) {
       setTab(tabParam as TabKey);
@@ -56,27 +67,26 @@ export default function TikTokTool() {
     const nextScanType = TAB_TO_SCAN_TYPE[tab];
 
     // 🔥 reset NGAY
+    stopPolling();
     setResults([]);
     setScanType(nextScanType);
+    setTaskStatus("idle");
+    setErrorMessage("");
 
     if (nextScanType) {
       fetchLatestTask(nextScanType);
     }
+
+    return () => stopPolling();
   }, [tab]);
-  // useEffect(() => {
-  //   if (!scanType) return;
-
-  //   const interval = setInterval(() => {
-  //     fetchLatestTask(scanType);
-  //   }, 5000);
-
-  //   return () => clearInterval(interval);
-  // }, [scanType]);
   async function submitScan(form: any) {
     if (loading) return;
     try {
+      stopPolling();
       setLoading(true);
       setResults([]);
+      setTaskStatus("pending");
+      setErrorMessage("");
 
       const res = await fetch(`${API_BASE_URL}/api/tiktok/scan`, {
         method: "POST",
@@ -85,16 +95,59 @@ export default function TikTokTool() {
       });
 
       if (!res.ok) {
-        throw new Error("Scan failed");
+        throw new Error("Không thể tạo task. Server trả về lỗi.");
       }
 
       const data = await res.json();
-
       console.log("✅ SCAN RESPONSE:", data);
-    } catch (err) {
+
+      // Start polling for task completion
+      const currentScanType = form.scan_type as ScanType;
+      startPolling(currentScanType);
+    } catch (err: any) {
       console.error("❌ SCAN ERROR:", err);
+      setTaskStatus("error");
+      setErrorMessage(err?.message || "Lỗi không xác định khi tạo task.");
       setLoading(false);
     }
+  }
+
+  function startPolling(pollScanType: ScanType) {
+    stopPolling();
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/tiktok/task/latest?scan_type=${pollScanType}`
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        const task = json?.data;
+        if (!task) return;
+
+        const status = task.status;
+
+        if (status === "running") {
+          setTaskStatus("running");
+        } else if (status === "success") {
+          stopPolling();
+          setTaskStatus("success");
+          if (pollScanType === "relations") {
+            setResults(task.result?.friends_detail || []);
+          } else {
+            setResults(task.result || []);
+          }
+          setLoading(false);
+        } else if (status === "error") {
+          stopPolling();
+          setTaskStatus("error");
+          setErrorMessage(task.error_message || "Task bị lỗi. Vui lòng thử lại.");
+          setLoading(false);
+        }
+        // pending → just keep waiting
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 3000);
   }
 
   async function fetchLatestTask(scanType?: ScanType | null) {
@@ -490,6 +543,25 @@ export default function TikTokTool() {
 
         {/* RIGHT RESULT */}
         <div style={right}>
+          {/* Error banner */}
+          {taskStatus === "error" && (
+            <div style={errorBanner}>
+              <div style={{ flex: 1 }}>
+                <strong>❌ Task thất bại</strong>
+                <p style={{ margin: "4px 0 0", opacity: 0.9, fontSize: 14 }}>{errorMessage}</p>
+              </div>
+              <button
+                style={retryBtn}
+                onClick={() => {
+                  setTaskStatus("idle");
+                  setErrorMessage("");
+                }}
+              >
+                Đóng
+              </button>
+            </div>
+          )}
+
           {!loading && results.length > 0 && (
             <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
               <button style={downloadBtn} onClick={downloadJSON}>
@@ -501,9 +573,10 @@ export default function TikTokTool() {
               </button>
             </div>
           )}
-          {loading && <LoadingPanel />}
 
-          {!loading && results.length === 0 && (
+          {loading && <LoadingPanel taskStatus={taskStatus} />}
+
+          {!loading && taskStatus !== "error" && results.length === 0 && (
             <EmptyState scanType={scanType} />
           )}
 
@@ -644,13 +717,45 @@ const downloadBtnExcel = {
   background: "#16a34a",
   color: "#fff",
 };
-function LoadingPanel() {
+
+const errorBanner: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 14,
+  padding: "16px 20px",
+  borderRadius: 12,
+  background: "rgba(239,68,68,0.2)",
+  border: "1px solid rgba(239,68,68,0.5)",
+  color: "#fca5a5",
+  marginBottom: 16,
+};
+
+const retryBtn: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: 8,
+  border: "1px solid rgba(255,255,255,0.3)",
+  background: "rgba(255,255,255,0.1)",
+  color: "#fff",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+function LoadingPanel({ taskStatus }: { taskStatus: string }) {
+  const statusText: Record<string, string> = {
+    pending: "⏳ Đang chờ worker xử lý...",
+    running: "🔄 Worker đang cào dữ liệu...",
+  };
+
   return (
     <div style={loadingWrap}>
       <div style={spinner} />
-      <p style={{ marginTop: 12, opacity: 0.85 }}>
-        Đang quét dữ liệu, vui lòng chờ...
+      <p style={{ marginTop: 12, opacity: 0.85, fontSize: 16 }}>
+        {statusText[taskStatus] || "Đang tải dữ liệu..."}
       </p>
+      {(taskStatus === "pending" || taskStatus === "running") && (
+        <p style={{ marginTop: 4, opacity: 0.5, fontSize: 13 }}>
+          Tự động cập nhật mỗi 3 giây
+        </p>
+      )}
     </div>
   );
 }

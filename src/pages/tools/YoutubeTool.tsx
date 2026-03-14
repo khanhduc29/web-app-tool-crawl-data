@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import "./YouTubeTool.css";
 import YouTubeResult from "./YoutubeResult";
@@ -33,6 +33,16 @@ export default function YouTubeTool() {
   const [result, setResult] = useState<any>(null);
   const [task, setTask] = useState<any>(null);
   const [deepScanSocial, setDeepScanSocial] = useState(false);
+  const [taskStatus, setTaskStatus] = useState<"idle" | "pending" | "running" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  };
 
   useEffect(() => {
     const fetchLatestSuccessTask = async () => {
@@ -90,6 +100,9 @@ export default function YouTubeTool() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setTaskStatus("pending");
+    setErrorMsg("");
+    stopPolling();
     try {
       const payload =
         activeTab === "video_comments"
@@ -112,10 +125,38 @@ export default function YouTubeTool() {
               };
 
       await axios.post(`${API_BASE_URL}/api/youtube/scan`, payload);
-      alert("Tạo request thành công!");
+      setTaskStatus("running");
+
+      // Start polling
+      pollingRef.current = setInterval(async () => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/youtube/task/latest`, {
+            params: { scan_type: activeTab },
+          });
+          const taskData = res.data?.data;
+          if (!taskData) return;
+
+          if (taskData.status === "success") {
+            stopPolling();
+            setTask(taskData);
+            setResult(taskData.result || null);
+            setTaskStatus("success");
+            setLoading(false);
+          } else if (taskData.status === "error") {
+            stopPolling();
+            setTaskStatus("error");
+            setErrorMsg(taskData.error_message || "Task bị lỗi. Vui lòng thử lại.");
+            setLoading(false);
+          } else if (taskData.status === "running") {
+            setTaskStatus("running");
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+        }
+      }, 3000);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Có lỗi xảy ra");
-    } finally {
+      setTaskStatus("error");
+      setErrorMsg(err.response?.data?.message || err?.message || "Có lỗi xảy ra");
       setLoading(false);
     }
   };
@@ -227,8 +268,25 @@ export default function YouTubeTool() {
           />
 
           <button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Đang quét..." : "Quét dữ liệu"}
+            {loading
+              ? taskStatus === "pending" ? "⏳ Đang gửi..."
+              : taskStatus === "running" ? "🔄 Đang cào..."
+              : "Đang quét..."
+            : "Quét dữ liệu"}
           </button>
+
+          {taskStatus === "error" && (
+            <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: 14 }}>
+              <strong>❌ Lỗi:</strong> {errorMsg}
+              <button onClick={() => { setTaskStatus("idle"); setErrorMsg(""); }} style={{ marginLeft: 12, background: "none", border: "none", color: "#fca5a5", cursor: "pointer", textDecoration: "underline" }}>Đóng</button>
+            </div>
+          )}
+
+          {loading && (
+            <p style={{ marginTop: 8, opacity: 0.6, fontSize: 13 }}>
+              Tự động cập nhật mỗi 3 giây
+            </p>
+          )}
         </div>
 
         <div className="yt-preview">

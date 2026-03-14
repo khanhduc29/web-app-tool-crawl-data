@@ -31,6 +31,8 @@ export default function PinterestTool() {
   const [keyword, setKeyword] = useState("");
   const [data, setData] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(false);
+  const [taskStatus, setTaskStatus] = useState<"idle" | "pending" | "running" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<ScanHistory[]>([]);
@@ -69,6 +71,8 @@ export default function PinterestTool() {
 
     setLoading(true);
     setData([]);
+    setTaskStatus("pending");
+    setErrorMsg("");
 
     try {
       const res = await fetch(`${API_BASE}/scan`, {
@@ -83,15 +87,22 @@ export default function PinterestTool() {
         }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Server trả về lỗi (${res.status})`);
+      }
+
       const json = await res.json();
 
       console.log("Scan created:", json);
 
       const taskId = json.data.tasks[0]._id;
+      setTaskStatus("running");
 
       pollResult(taskId);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setTaskStatus("error");
+      setErrorMsg(err?.message || "Không thể tạo scan. Vui lòng thử lại.");
       setLoading(false);
     }
   };
@@ -109,12 +120,23 @@ export default function PinterestTool() {
 
           setData(task.result);
           setCurrentKeyword(keyword);
+          setTaskStatus("success");
           setLoading(false);
         }
       } catch (err) {
         console.error(err);
       }
     }, 3000);
+
+    // Timeout fallback: if no result after 2 min, show error
+    setTimeout(() => {
+      if (loading) {
+        clearInterval(interval);
+        setTaskStatus("error");
+        setErrorMsg("Task quá thời gian chờ. Vui lòng thử lại.");
+        setLoading(false);
+      }
+    }, 120000);
   };
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -208,13 +230,31 @@ export default function PinterestTool() {
 
         <button onClick={startScan} disabled={loading}>
           <FaPlay />
-          {loading ? "Scanning..." : "Start Scan"}
+          {loading
+            ? taskStatus === "pending" ? "⏳ Đang gửi..."
+            : taskStatus === "running" ? "🔄 Đang cào..."
+            : "Scanning..."
+          : "Start Scan"}
         </button>
 
         <button className="history-btn" onClick={openHistory}>
           <FaHistory />
         </button>
       </div>
+
+      {taskStatus === "error" && (
+        <div style={{ margin: "12px 0", padding: "12px 16px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: 14 }}>
+          <strong>❌ Lỗi:</strong> {errorMsg}
+          <button onClick={() => { setTaskStatus("idle"); setErrorMsg(""); }} style={{ marginLeft: 12, background: "none", border: "none", color: "#fca5a5", cursor: "pointer", textDecoration: "underline" }}>Đóng</button>
+        </div>
+      )}
+
+      {loading && (
+        <div className="loading">
+          {taskStatus === "pending" ? "⏳ Đang gửi yêu cầu..." : "🔄 Đang cào Pinterest..."}
+          <p style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Tự động cập nhật mỗi 3 giây</p>
+        </div>
+      )}
 
       {data.length > 0 && (
         <div className="download-bar">
@@ -233,8 +273,6 @@ export default function PinterestTool() {
           </div>
         </div>
       )}
-
-      {loading && <div className="loading">Scanning Pinterest...</div>}
 
       <div className="pinterest-grid">
         {paginatedData.map((item, index) => (
