@@ -129,8 +129,12 @@ export async function updateTaskError(req, res) {
 export async function getTasks(req, res) {
   try {
     const limit = parseInt(req.query.limit);
+    const request_id = req.query.request_id;
 
-    const query = InstagramTaskModel.find().sort({ createdAt: -1 });
+    const filter = {};
+    if (request_id) filter.request_id = request_id;
+
+    const query = InstagramTaskModel.find(filter).sort({ createdAt: -1 });
 
     if (limit) {
       query.limit(limit);

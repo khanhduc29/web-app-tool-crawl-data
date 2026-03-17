@@ -125,3 +125,36 @@ export async function updateTaskSuccess(req, res) {
     });
   }
 }
+
+/**
+ * GET ALL TASKS (any status)
+ */
+export async function getTasks(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const page = parseInt(req.query.page) || 1;
+    const request_id = req.query.request_id;
+
+    const filter = {};
+    if (request_id) filter.request_id = request_id;
+
+    const total = await PinterestTask.countDocuments(filter);
+    const tasks = await PinterestTask.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      success: true,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      data: tasks,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}

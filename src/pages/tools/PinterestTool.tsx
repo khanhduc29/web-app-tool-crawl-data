@@ -18,9 +18,11 @@ interface Pin {
 }
 
 interface ScanHistory {
+  _id: string;
   keyword: string;
   date: string;
   total: number;
+  status: string;
   result: Pin[];
 }
 
@@ -36,7 +38,10 @@ export default function PinterestTool() {
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<ScanHistory[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
+  const HISTORY_PER_PAGE = 8;
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
   const startIndex = (page - 1) * PAGE_SIZE;
@@ -45,20 +50,23 @@ export default function PinterestTool() {
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
   useEffect(() => {
     loadLatestResult();
+    openHistory(false); // load history silently without opening panel
   }, []);
 
   const loadLatestResult = async () => {
     try {
-      const res = await fetch(`${API_BASE}/tasks/success?limit=1`);
-      const json = await res.json();
+      // First check ALL tasks (any status) to detect pending/running
+      const allRes = await fetch(`${API_BASE}/tasks/success?limit=50`);
+      const allJson = await allRes.json();
+      const allTasks = allJson.data || [];
 
-      if (json.data?.length > 0) {
-        const task = json.data[0];
-
-        if (task.result) {
-          setData(task.result);
+      // Load latest success result for display
+      if (allTasks.length > 0) {
+        const latestSuccess = allTasks.find((t: any) => t.result);
+        if (latestSuccess) {
+          setData(latestSuccess.result);
           setTaskStatus("success");
-          setCurrentKeyword(task.input?.keyword || "");
+          setCurrentKeyword(latestSuccess.input?.keyword || "");
         }
       }
     } catch (err) {
@@ -94,13 +102,13 @@ export default function PinterestTool() {
       }
 
       const json = await res.json();
-
       console.log("Scan created:", json);
 
-      const taskId = json.data.tasks[0]._id;
       setTaskStatus("running");
+      setCurrentKeyword(keyword);
 
-      pollResult(taskId);
+      // Poll for the result — check latest success tasks
+      pollResult(keyword);
     } catch (err: any) {
       console.error(err);
       setTaskStatus("error");
@@ -109,19 +117,33 @@ export default function PinterestTool() {
     }
   };
 
-  const pollResult = async (taskId: string) => {
+  const pollResult = async (searchKeyword: string) => {
+    const startTime = Date.now();
+    const TIMEOUT = 120_000; // 2 min timeout
+
     const interval = setInterval(async () => {
       try {
+        // Timeout fallback
+        if (Date.now() - startTime > TIMEOUT) {
+          clearInterval(interval);
+          setTaskStatus("error");
+          setErrorMsg("Quá thời gian chờ. Vui lòng thử lại.");
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch(`${API_BASE}/tasks/success?limit=50`);
         const json = await res.json();
 
-        const task = json.data.find((t: any) => t._id === taskId);
+        // Find a task whose keyword matches our search
+        const task = json.data?.find(
+          (t: any) => t.input?.keyword === searchKeyword && t.result
+        );
 
         if (task && task.result) {
           clearInterval(interval);
-
           setData(task.result);
-          setCurrentKeyword(keyword);
+          setCurrentKeyword(searchKeyword);
           setTaskStatus("success");
           setLoading(false);
         }
@@ -129,16 +151,6 @@ export default function PinterestTool() {
         console.error(err);
       }
     }, 3000);
-
-    // Timeout fallback: if no result after 2 min, show error
-    setTimeout(() => {
-      if (loading) {
-        clearInterval(interval);
-        setTaskStatus("error");
-        setErrorMsg("Task quá thời gian chờ. Vui lòng thử lại.");
-        setLoading(false);
-      }
-    }, 120000);
   };
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -192,23 +204,27 @@ export default function PinterestTool() {
     link.click();
   };
 
-  const openHistory = async () => {
+  const openHistory = async (showPanel = true, pageNum = 1) => {
     try {
-      const res = await fetch(`${API_BASE}/tasks/success?limit=100`);
+      const res = await fetch(`${API_BASE}/tasks?limit=${HISTORY_PER_PAGE}&page=${pageNum}`);
       const json = await res.json();
 
       const tasks = json.data || [];
 
       const formatted: ScanHistory[] = tasks.map((t: any) => ({
+        _id: t._id,
         keyword: t.input?.keyword || "Unknown",
         date: new Date(t.createdAt).toLocaleString(),
         total: t.result ? t.result.length : 0,
+        status: t.status || "pending",
         result: t.result || [],
       }));
 
       setHistory(formatted);
+      setHistoryPage(json.page || 1);
+      setHistoryTotalPages(json.totalPages || 1);
 
-      setHistoryOpen(true);
+      if (showPanel) setHistoryOpen(true);
     } catch (err) {
       console.error("History error:", err);
     }
@@ -241,7 +257,7 @@ export default function PinterestTool() {
           : "Start Scan"}
         </button>
 
-        <button className="history-btn" onClick={openHistory}>
+        <button className="history-btn" onClick={() => openHistory()}>
           <FaHistory />
         </button>
       </div>
@@ -368,22 +384,41 @@ export default function PinterestTool() {
           </button>
         </div>
 
-        {history.length === 0 && <p className="empty">No scans yet</p>}
+        {history.length === 0 && <p className="empty">Chưa có lịch sử quét</p>}
 
-        {history.map((item, index) => (
+        {history.map((item) => (
           <div
-            key={index}
-            className="history-item"
-            onClick={() => loadHistoryResult(item)}
+            key={item._id}
+            className={`history-item ${item.status === "success" && item.result.length > 0 ? "clickable" : ""}`}
+            onClick={() => item.status === "success" && item.result.length > 0 && loadHistoryResult(item)}
+            style={{ opacity: item.status === "success" ? 1 : 0.7, cursor: item.status === "success" ? "pointer" : "default" }}
           >
-            <div>
+            <div style={{ flex: 1 }}>
               <strong>{item.keyword}</strong>
               <p>{item.date}</p>
             </div>
 
-            <span>{item.total} pins</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <span className={`status-badge status-${item.status}`}>
+                <span className="dot" />
+                {item.status === "pending" && "⏳ Chờ"}
+                {item.status === "running" && "🔄 Đang cào"}
+                {item.status === "success" && "✅ Xong"}
+                {item.status === "error" && "❌ Lỗi"}
+              </span>
+              {item.status === "success" && <span style={{ fontSize: 11, opacity: 0.5 }}>{item.total} pins</span>}
+            </div>
           </div>
         ))}
+
+        {/* History Pagination */}
+        {historyTotalPages > 1 && (
+          <div className="tool-pagination" style={{ marginTop: 12 }}>
+            <button disabled={historyPage <= 1} onClick={() => openHistory(true, historyPage - 1)}>← Trước</button>
+            <span>Trang {historyPage} / {historyTotalPages}</span>
+            <button disabled={historyPage >= historyTotalPages} onClick={() => openHistory(true, historyPage + 1)}>Sau →</button>
+          </div>
+        )}
       </div>
     </div>
     </div>
