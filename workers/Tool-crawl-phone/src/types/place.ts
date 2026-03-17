@@ -18,4 +18,13 @@ export interface Place {
 
   // deep_scan_website
   socials?: SocialLinks;
+
+  // deep_scan_reviews
+  reviews?: Array<{
+    reviewer: string;
+    rating: number | null;
+    text: string | null;
+    date: string | null;
+    photos: number;
+  }>;
 }

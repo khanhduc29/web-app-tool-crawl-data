@@ -4,6 +4,7 @@ import { searchKeyword } from "./search";
 import { crawlWithAutoScroll } from "./crawlWithAutoScroll";
 import { updateTask, updatePartialResult } from "../api/crawlTask.api";
 import { crawlWebsiteContact } from "./crawlWebsiteContact";
+import { crawlReviews } from "./crawlReviews";
 import { deepScanPlace } from "./deepScanPlace";
 import { delay } from "../utils/delay";
 
@@ -140,7 +141,34 @@ export async function processTask(task: CrawlTask) {
     }
 
     /**
-     * 6️⃣ Deep scan Google Maps places
+     * 6️⃣ Deep scan reviews
+     */
+    if (task.deep_scan_reviews && results.length > 0) {
+
+      console.log(`⭐ Deep scan reviews ENABLED | ${results.length} places`);
+
+      for (let i = 0; i < results.length; i++) {
+        if (!results[i].url) continue;
+
+        const reviewPage = await context.newPage();
+        try {
+          results[i].reviews = await crawlReviews(reviewPage, results[i].url!, task.review_limit || 20);
+          console.log(`⭐ ${i + 1}/${results.length} ${results[i].name}: ${results[i].reviews?.length || 0} reviews`);
+        } catch {
+          console.log(`⚠️ Review crawl failed: ${results[i].name}`);
+        } finally {
+          await reviewPage.close();
+        }
+
+        // Partial save mỗi 10 businesses
+        if ((i + 1) % 10 === 0) {
+          await updatePartialResult(task._id, results);
+        }
+      }
+    }
+
+    /**
+     * 7️⃣ Deep scan Google Maps places
      */
     if (task.deep_scan) {
 

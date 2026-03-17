@@ -103,6 +103,8 @@ export default function App() {
   const [region, setRegion] = useState("vn");
   const [deepScan, setDeepScan] = useState(false);
   const [deepScanWebsite, setDeepScanWebsite] = useState(true);
+  const [deepScanReviews, setDeepScanReviews] = useState(false);
+  const [reviewLimit, setReviewLimit] = useState(20);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -250,8 +252,10 @@ export default function App() {
           region,
           result_limit: limit,
           delay_seconds: delay,
-          deep_scan: false, // tạm ẩn deep_scan vì đang phát triển
+          deep_scan: false,
           deep_scan_website: deepScanWebsite,
+          deep_scan_reviews: deepScanReviews,
+          review_limit: deepScanReviews ? reviewLimit : 0,
         }),
       });
 
@@ -388,6 +392,31 @@ export default function App() {
             <span />
           </label>
         </div>
+
+        <div className="switch-row">
+          <span>Quét chi tiết đánh giá</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={deepScanReviews}
+              onChange={() => setDeepScanReviews(!deepScanReviews)}
+            />
+            <span />
+          </label>
+        </div>
+
+        {deepScanReviews && (
+          <>
+            <label>Số lượng đánh giá / doanh nghiệp</label>
+            <input
+              type="number"
+              value={reviewLimit}
+              min={1}
+              max={100}
+              onChange={(e) => setReviewLimit(Number(e.target.value))}
+            />
+          </>
+        )}
 
         {/* <button className="run" onClick={createJob}>
           Bắt đầu quét
@@ -782,6 +811,68 @@ export default function App() {
                 </a>
               )}
             </div>
+
+            {/* REVIEWS */}
+            {selectedRow.reviews && selectedRow.reviews.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: 15 }}>
+                  ⭐ Đánh giá ({selectedRow.reviews.length})
+                </h3>
+                <div style={{
+                  maxHeight: 300,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                  paddingRight: 6,
+                }}>
+                  {selectedRow.reviews.map((review: any, idx: number) => (
+                    <div key={idx} style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}>
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 6,
+                      }}>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>
+                          👤 {review.reviewer}
+                        </span>
+                        <span style={{ fontSize: 12 }}>
+                          {review.date || ""}
+                        </span>
+                      </div>
+
+                      <div style={{ marginBottom: 6, fontSize: 13 }}>
+                        {review.rating != null
+                          ? "⭐".repeat(review.rating) + "☆".repeat(5 - review.rating)
+                          : "—"}
+                        {review.photos > 0 && (
+                          <span style={{ marginLeft: 8, fontSize: 12 }}>
+                            📸 {review.photos} ảnh
+                          </span>
+                        )}
+                      </div>
+
+                      {review.text && (
+                        <p style={{
+                          margin: 0,
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          whiteSpace: "pre-wrap",
+                        }}>
+                          {review.text}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* FOOTER */}
             <div className="modal-footer">

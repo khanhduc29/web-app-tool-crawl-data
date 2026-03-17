@@ -30,6 +30,8 @@ export type CrawlTask = {
 
   deep_scan: boolean;
   deep_scan_website: boolean;
+  deep_scan_reviews: boolean;
+  review_limit: number;
 
   status: "pending" | "processing" | "success" | "error";
 

@@ -30,10 +30,35 @@ export async function extractPlaceFromCard(
 
     if (ratingLabel) {
       const r = ratingLabel.replace(",", ".").match(/\d+(\.\d+)?/);
-      const rv = ratingLabel.match(/\((\d+)\)|(\d+)\s+/);
-
       rating = r ? parseFloat(r[0]) : null;
-      totalReviews = rv ? parseInt(rv[1] || rv[2]) : null;
+    }
+
+    // Tìm totalReviews từ nhiều nguồn
+    // 1. Từ aria-label: "4.5 sao 120 đánh giá" hoặc "4.5 stars (120)"
+    if (ratingLabel) {
+      const rv = ratingLabel.match(/\((\d[\d,.]*)\)|(\d[\d,.]+)\s*(đánh giá|review|avis)/i);
+      totalReviews = rv ? parseInt((rv[1] || rv[2]).replace(/[,.]/g, "")) : null;
+    }
+
+    // 2. Từ element riêng chứa review count (class UY7F9 hoặc text có dạng "(123)")
+    if (!totalReviews) {
+      const reviewCountEl = el.querySelector(".UY7F9");
+      const reviewCountText = reviewCountEl?.textContent?.trim() || "";
+      const countMatch = reviewCountText.replace(/[,.]/g, "").match(/\d+/);
+      if (countMatch) totalReviews = parseInt(countMatch[0]);
+    }
+
+    // 3. Fallback: tìm text dạng "(123)" gần rating
+    if (!totalReviews) {
+      const allSpans = Array.from(el.querySelectorAll("span"));
+      for (const span of allSpans) {
+        const t = span.textContent?.trim() || "";
+        const m = t.match(/^\((\d[\d,.]*)\)$/);
+        if (m) {
+          totalReviews = parseInt(m[1].replace(/[,.]/g, ""));
+          break;
+        }
+      }
     }
 
     // 🔹 Website (semantic)

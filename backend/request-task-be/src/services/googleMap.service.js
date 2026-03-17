@@ -15,6 +15,8 @@ export async function createGoogleMapJob(data) {
     delay_seconds: data.delay_seconds,
     deep_scan: data.deep_scan,
     deep_scan_website: data.deep_scan_website,
+    deep_scan_reviews: data.deep_scan_reviews,
+    review_limit: data.review_limit,
   });
 
   // 2️⃣ tách keyword
@@ -44,6 +46,8 @@ export async function createGoogleMapJob(data) {
     delay_seconds: data.delay_seconds,
     deep_scan: data.deep_scan,
     deep_scan_website: data.deep_scan_website,
+    deep_scan_reviews: data.deep_scan_reviews,
+    review_limit: data.review_limit,
   }));
 
   // 4️⃣ tạo task

@@ -37,6 +37,16 @@ const GoogleMapJobSchema = new mongoose.Schema(
       default: false,
     },
 
+    deep_scan_reviews: {
+      type: Boolean,
+      default: false,
+    },
+
+    review_limit: {
+      type: Number,
+      default: 20,
+    },
+
     status: {
       type: String,
       enum: ["pending", "processing", "success", "error", "cancel"],
