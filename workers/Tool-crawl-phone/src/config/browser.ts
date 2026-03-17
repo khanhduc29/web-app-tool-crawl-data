@@ -1,194 +1,68 @@
-// import { chromium, BrowserContext } from "playwright";
+import { chromium, BrowserContext, Browser } from "playwright";
 
-// export async function createBrowser(
-//   lat?: number,
-//   lng?: number
-// ): Promise<BrowserContext> {
+let currentBrowser: Browser | null = null;
 
-//   const MAX_RETRY = 3;
+/**
+ * Tạo browser context mới (hỗ trợ parallel)
+ * Dùng launch() thay vì launchPersistentContext() 
+ * để nhiều task có thể chạy song song
+ */
+export async function createBrowser(): Promise<BrowserContext> {
 
-//   for (let i = 1; i <= MAX_RETRY; i++) {
+  // Nếu chưa có browser → khởi tạo
+  if (!currentBrowser || !currentBrowser.isConnected()) {
 
-//     try {
+    const MAX_RETRY = 3;
 
-//       console.log(`🌐 Launch browser (attempt ${i})`);
+    for (let i = 1; i <= MAX_RETRY; i++) {
+      try {
+        console.log(`🌐 Launch browser (attempt ${i})`);
 
-//       const context = await chromium.launchPersistentContext(
-//         "profiles/default",
-//         {
-//           headless: false,
-
-//           viewport: {
-//             width: 1280,
-//             height: 800,
-//           },
-
-//           permissions: ["geolocation"],
-
-//           geolocation:
-//             lat && lng
-//               ? { latitude: lat, longitude: lng }
-//               : undefined,
-
-//           locale: "en-US",
-
-//           timezoneId: "UTC",
-
-//           args: [
-//             "--disable-blink-features=AutomationControlled",
-//             "--no-sandbox",
-//             "--disable-dev-shm-usage",
-//           ],
-//         }
-//       );
-
-//       return context;
-
-//     } catch (err: any) {
-
-//       console.error(
-//         `❌ Browser launch failed (attempt ${i})`,
-//         err.message
-//       );
-
-//       if (i === MAX_RETRY) {
-
-//         console.log(
-//           "⚠️ Fallback → launch temporary browser"
-//         );
-
-//         return chromium.launchPersistentContext(
-//           "",
-//           {
-//             headless: false,
-//           }
-//         );
-
-//       }
-
-//       await new Promise((r) => setTimeout(r, 2000));
-
-//     }
-
-//   }
-
-//   throw new Error("Cannot launch browser");
-
-// }
-
-import { chromium, BrowserContext } from "playwright";
-
-let currentContext: BrowserContext | null = null;
-
-export async function createBrowser(
-  lat?: number,
-  lng?: number
-): Promise<BrowserContext> {
-
-  const MAX_RETRY = 3;
-
-  // nếu browser cũ còn mở → đóng trước
-  if (currentContext) {
-    try {
-      console.log("🧹 Closing previous browser...");
-      await currentContext.close();
-    } catch {
-      console.log("⚠️ Failed closing previous browser");
-    }
-    currentContext = null;
-  }
-
-  for (let i = 1; i <= MAX_RETRY; i++) {
-
-    try {
-
-      console.log(`🌐 Launch browser (attempt ${i})`);
-
-      const context = await chromium.launchPersistentContext(
-        "profiles/default",
-        {
+        currentBrowser = await chromium.launch({
           headless: false,
-
-          viewport: {
-            width: 1280,
-            height: 800,
-          },
-
-          permissions: ["geolocation"],
-
-          geolocation:
-            lat && lng
-              ? { latitude: lat, longitude: lng }
-              : undefined,
-
-          locale: "en-US",
-
-          timezoneId: "UTC",
-
           args: [
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
             "--disable-dev-shm-usage",
           ],
+        });
+
+        break;
+
+      } catch (err: any) {
+        console.error(`❌ Browser launch failed (attempt ${i})`, err.message);
+
+        if (i === MAX_RETRY) {
+          throw new Error("Cannot launch browser after " + MAX_RETRY + " attempts");
         }
-      );
 
-      currentContext = context;
-
-      return context;
-
-    } catch (err: any) {
-
-      console.error(
-        `❌ Browser launch failed (attempt ${i})`,
-        err.message
-      );
-
-      if (i === MAX_RETRY) {
-
-        console.log(
-          "⚠️ Fallback → launch temporary browser"
-        );
-
-        const context = await chromium.launchPersistentContext(
-          "",
-          {
-            headless: false,
-          }
-        );
-
-        currentContext = context;
-
-        return context;
-
+        await new Promise((r) => setTimeout(r, 2000));
       }
-
-      await new Promise((r) => setTimeout(r, 2000));
-
     }
-
   }
 
-  throw new Error("Cannot launch browser");
+  // Tạo context mới cho mỗi task
+  const context = await currentBrowser!.newContext({
+    viewport: { width: 1280, height: 800 },
+    locale: "en-US",
+    timezoneId: "UTC",
+  });
 
+  return context;
 }
 
+/**
+ * Đóng toàn bộ browser
+ */
 export async function closeBrowser() {
-
-  if (!currentContext) return;
+  if (!currentBrowser) return;
 
   try {
-
-    console.log("🧹 Closing idle browser...");
-
-    await currentContext.close();
-
+    console.log("🧹 Closing browser...");
+    await currentBrowser.close();
   } catch {
-
     console.log("⚠️ Browser close error");
-
   }
 
-  currentContext = null;
-
+  currentBrowser = null;
 }

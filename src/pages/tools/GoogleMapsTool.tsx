@@ -267,9 +267,21 @@ export default function App() {
       setIsCreating(false);
     }
   };
+  // Auto-refresh jobs mỗi 5 giây
   useEffect(() => {
     fetchJobs();
+    const interval = setInterval(fetchJobs, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Auto-refresh tasks mỗi 5 giây khi đang xem tasks
+  useEffect(() => {
+    if (tab === "tasks" && selectedJobId) {
+      const interval = setInterval(() => fetchTasks(selectedJobId), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [tab, selectedJobId]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [jobs]);

@@ -1,63 +1,40 @@
-// import axios from "axios";
-// import { CrawlTask } from "../types/crawlTask";
-
-// const API_BASE =
-//   "https://tool-map-crawl-be-2.onrender.com/api";
-
-// /**
-//  * Lấy 1 crawl_task pending từ BE
-//  * Worker KHÔNG map job → task
-//  */
-// export async function getNextTask(): Promise<CrawlTask | null> {
-//   const res = await axios.get(`${API_BASE}/crawl-tasks`, {
-//     params: {
-//       status: "pending",
-//       limit: 1,
-//     },
-//   });
-
-//   const tasks = res.data?.data;
-
-//   if (!tasks || tasks.length === 0) {
-//     console.log("⏳ No pending crawl task");
-//     return null;
-//   }
-
-//   const task: CrawlTask = tasks[0];
-
-//   console.log("📥 Picked crawl task:", task);
-//   return task;
-// }
-
-// /**
-//  * Update crawl_task (processing / success / error)
-//  */
-// export async function updateTask(
-//   taskId: string,
-//   payload: Partial<CrawlTask>
-// ) {
-//   await axios.put(
-//     `${API_BASE}/crawl-tasks/${taskId}`,
-//     payload
-//   );
-// }
-
 import axios from "axios";
 import { CrawlTask } from "../types/crawlTask";
 
-// const API_BASE = "https://be-tool-crawldata.onrender.com/api";
 const API_BASE = "http://localhost:3000/api";
 
 /**
- * Lấy 1 Google Map task pending từ BE mới
- * BE sẽ tự động chuyển status: pending → processing
+ * Lấy nhiều Google Map task pending từ BE (cho parallel processing)
+ */
+export async function getMultipleTasks(limit: number = 3): Promise<CrawlTask[]> {
+  const tasks: CrawlTask[] = [];
+
+  for (let i = 0; i < limit; i++) {
+    try {
+      const res = await axios.get(
+        `${API_BASE}/google-map/task/pending`
+      );
+
+      const task: CrawlTask | null = res.data?.data ?? null;
+      if (!task) break;
+
+      tasks.push(task);
+    } catch {
+      break;
+    }
+  }
+
+  return tasks;
+}
+
+/**
+ * Lấy 1 Google Map task pending (backward compatible)
  */
 export async function getNextTask(): Promise<CrawlTask | null> {
   const res = await axios.get(
     `${API_BASE}/google-map/task/pending`
   );
 
-  // BE mới trả về { success, data }
   const task: CrawlTask | null = res.data?.data ?? null;
 
   if (!task) {
@@ -76,7 +53,6 @@ export async function getNextTask(): Promise<CrawlTask | null> {
 
 /**
  * Update Google Map task (success / error)
- * Worker KHÔNG set processing
  */
 export async function updateTask(
   taskId: string,
@@ -90,4 +66,22 @@ export async function updateTask(
     `${API_BASE}/google-map/task/${taskId}`,
     payload
   );
+}
+
+/**
+ * Lưu kết quả tạm (partial) để không mất data khi crash
+ */
+export async function updatePartialResult(
+  taskId: string,
+  partialResult: any[]
+): Promise<void> {
+  try {
+    await axios.patch(
+      `${API_BASE}/google-map/task/${taskId}/partial`,
+      { partial_result: partialResult }
+    );
+    console.log(`💾 Saved partial result: ${partialResult.length} items`);
+  } catch (err: any) {
+    console.log(`⚠️ Partial save failed: ${err.message}`);
+  }
 }

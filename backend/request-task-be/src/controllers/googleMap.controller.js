@@ -68,8 +68,17 @@ export async function updateGoogleMapTask(req, res) {
       updated_at: new Date(),
     };
 
-    if (status === "success") {
-      updateData.result = result;
+    if (status === "success" && result) {
+      // Loại trùng theo name + address
+      const seen = new Set();
+      const dedupResult = result.filter((place) => {
+        const key = `${(place.name || "").toLowerCase()}_${(place.address || "").toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      updateData.result = dedupResult;
+      updateData.partial_result = null; // Xóa partial sau khi có result cuối
     }
 
     if (status === "error") {
@@ -97,6 +106,42 @@ export async function updateGoogleMapTask(req, res) {
     res.json({
       success: true,
       data: task,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
+
+/**
+ * Lưu kết quả tạm (partial) để không mất data khi crash
+ */
+export async function updatePartialGoogleMapTask(req, res) {
+  try {
+    const { id } = req.params;
+    const { partial_result } = req.body;
+
+    const task = await GoogleMapTask.findByIdAndUpdate(
+      id,
+      {
+        partial_result,
+        updated_at: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { _id: task._id, partial_count: partial_result?.length || 0 },
     });
   } catch (err) {
     res.status(500).json({

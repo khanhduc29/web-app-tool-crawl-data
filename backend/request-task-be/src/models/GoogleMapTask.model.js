@@ -54,6 +54,11 @@ const GoogleMapTaskSchema = new mongoose.Schema(
       default: null,
     },
 
+    partial_result: {
+      type: mongoose.Schema.Types.Mixed, // Place[] (kết quả tạm)
+      default: null,
+    },
+
     error_message: String,
   },
   {

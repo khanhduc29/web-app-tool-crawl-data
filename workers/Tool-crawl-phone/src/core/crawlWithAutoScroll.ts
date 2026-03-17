@@ -3,10 +3,16 @@ import { Place } from "../types/place";
 import { extractPlaceFromCard } from "./extractFromCard";
 
 /**
+ * Random delay giữa min-max ms (chống detect bot)
+ */
+function randomDelay(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
  * Crawl Google Maps LIST (CARD ONLY)
- * - KHÔNG click
- * - KHÔNG đọc panel
- * - KHÔNG phụ thuộc layout
+ * - Scroll incremental + random delay
+ * - Stuck detection tăng lên 5 rounds
  */
 export async function crawlWithAutoScroll(
   page: Page,
@@ -16,16 +22,17 @@ export async function crawlWithAutoScroll(
   const seenUrls = new Set<string>();
 
   let stuckRounds = 0;
+  const MAX_STUCK = 5;
 
   while (results.length < limit) {
-    console.log(`🔄 Loop | current=${results.length}`);
+    console.log(`🔄 Loop | current=${results.length}/${limit}`);
 
     // ⏳ chờ feed load
     await page.waitForSelector('div[role="feed"]', {
       timeout: 20000,
     });
 
-    const links = await page.$$('a.hfpxzc');
+    const links = await page.$$("a.hfpxzc");
 
     let newFoundThisRound = 0;
 
@@ -37,15 +44,14 @@ export async function crawlWithAutoScroll(
         if (!href || seenUrls.has(href)) continue;
 
         await link.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(150);
+        await page.waitForTimeout(randomDelay(100, 300));
 
         /**
          * 🔥 LẤY CARD CHA (div[role="article"])
-         * Không phụ thuộc class random
          */
-        const card = await link.evaluateHandle((el) =>
+        const card = (await link.evaluateHandle((el) =>
           el.closest('div[role="article"]')
-        ) as ElementHandle<Element> | null;
+        )) as ElementHandle<Element> | null;
 
         if (!card) continue;
 
@@ -67,27 +73,40 @@ export async function crawlWithAutoScroll(
       }
     }
 
-    // 📜 scroll để load thêm batch mới
+    // 📜 scroll incremental (cuộn theo bước thay vì nhảy cuối)
     await page.evaluate(() => {
       const feed = document.querySelector('div[role="feed"]');
-      if (feed) feed.scrollTop = feed.scrollHeight;
+      if (feed) {
+        // Cuộn thêm 1500px thay vì nhảy hết
+        feed.scrollTop += 1500;
+      }
     });
 
-    await page.waitForTimeout(800);
+    // Random delay giữa mỗi scroll (1-2 giây)
+    await page.waitForTimeout(randomDelay(1000, 2000));
 
     // 🧠 detect stuck
     if (newFoundThisRound === 0) {
       stuckRounds++;
-      console.log(`⚠️ No new data (stuck=${stuckRounds})`);
+      console.log(`⚠️ No new data (stuck=${stuckRounds}/${MAX_STUCK})`);
+
+      // Thử scroll thêm 1 lần nữa xuống cuối
+      await page.evaluate(() => {
+        const feed = document.querySelector('div[role="feed"]');
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      });
+      await page.waitForTimeout(2000);
+
     } else {
       stuckRounds = 0;
     }
 
-    if (stuckRounds >= 2) {
+    if (stuckRounds >= MAX_STUCK) {
       console.log("🛑 No more data, stop crawling");
       break;
     }
   }
 
+  console.log(`📊 Crawl finished: ${results.length} results`);
   return results;
 }
