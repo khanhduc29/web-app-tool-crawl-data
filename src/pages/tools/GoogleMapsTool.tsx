@@ -289,7 +289,7 @@ export default function App() {
   useEffect(() => {
     setCurrentPage(1);
   }, [jobs]);
-  const results = selectedTask?.result || [];
+  const results = selectedTask?.result || selectedTask?.partial_result || [];
   const sortedResults = sortData(results);
 
   const filteredResults = onlyHasSocial
@@ -597,6 +597,11 @@ export default function App() {
                       {task.status === "success" && (
                         <button onClick={() => fetchTaskDetail(task._id)}>
                           Xem kết quả
+                        </button>
+                      )}
+                      {task.status === "error" && task.partial_result?.length > 0 && (
+                        <button onClick={() => fetchTaskDetail(task._id)} style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                          Xem kết quả (partial: {task.partial_result.length})
                         </button>
                       )}
                     </td>
