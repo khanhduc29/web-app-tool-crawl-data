@@ -12,16 +12,20 @@ export async function startTaskQueue() {
   while (true) {
     try {
       // Lấy tối đa MAX_PARALLEL task pending
+      console.log("🔍 Polling for tasks...");
       const tasks = await getMultipleTasks(MAX_PARALLEL);
 
       if (tasks.length === 0) {
-        console.log("⏳ No task, waiting...");
+        console.log("😴 No pending task → sleep 10s");
         await closeBrowser(); // Đóng browser khi idle
         await delay(POLL_INTERVAL);
         continue;
       }
 
       console.log(`📥 Got ${tasks.length} tasks → processing in parallel`);
+      tasks.forEach((t, i) => {
+        console.log(`  ${i + 1}. ${t._id} | keyword="${t.keyword}" | limit=${t.result_limit}`);
+      });
 
       // Chạy song song tất cả tasks
       const results = await Promise.allSettled(

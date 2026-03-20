@@ -40,7 +40,7 @@ export async function searchKeyword(
   });
 
   // đợi maps render
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(2000);
 
   // chờ sidebar hoặc place card
   await Promise.race([

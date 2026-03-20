@@ -212,3 +212,50 @@ export async function getGoogleMapTaskDetail(req, res) {
     });
   }
 }
+
+/**
+ * Reset các task bị stuck ở "processing" > 5 phút → pending
+ */
+export async function resetStuckTasks(req, res) {
+  try {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const result = await GoogleMapTask.updateMany(
+      {
+        status: "processing",
+        updated_at: { $lt: fiveMinAgo },
+      },
+      {
+        status: "pending",
+        updated_at: new Date(),
+      }
+    );
+
+    // Cũng reset task processing mà không có updated_at
+    const result2 = await GoogleMapTask.updateMany(
+      {
+        status: "processing",
+        updated_at: { $exists: false },
+      },
+      {
+        status: "pending",
+        updated_at: new Date(),
+      }
+    );
+
+    const totalReset = (result.modifiedCount || 0) + (result2.modifiedCount || 0);
+
+    console.log(`🔄 Reset ${totalReset} stuck processing tasks → pending`);
+
+    res.json({
+      success: true,
+      message: `Reset ${totalReset} stuck tasks`,
+      data: { reset_count: totalReset },
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}

@@ -24,6 +24,8 @@ export async function createBrowser(): Promise<BrowserContext> {
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
             "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-extensions",
           ],
         });
 

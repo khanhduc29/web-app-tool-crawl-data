@@ -111,6 +111,7 @@ export default function App() {
   const [onlyHasSocial, setOnlyHasSocial] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [errorDetailTask, setErrorDetailTask] = useState<any | null>(null);
 
   // ===== UI STATE =====
   const [tab, setTab] = useState<Tab>("jobs");
@@ -271,6 +272,17 @@ export default function App() {
       setIsCreating(false);
     }
   };
+  const resetStuckTasks = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/google-map/task/reset-stuck`, { method: "POST" });
+      const json = await res.json();
+      alert(`Đã reset ${json.data?.reset_count || 0} task bị kẹt`);
+      if (selectedJobId) fetchTasks(selectedJobId);
+    } catch {
+      alert("Lỗi khi reset");
+    }
+  };
+
   // Auto-refresh jobs mỗi 5 giây
   useEffect(() => {
     fetchJobs();
@@ -578,12 +590,19 @@ export default function App() {
         {/* ===== TASKS ===== */}
         {tab === "tasks" && (
           <div className="table-x-scroll">
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10, gap: 8 }}>
+              <button onClick={resetStuckTasks} style={{ background: "rgba(251,191,36,0.2)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer" }}>
+                🔄 Reset task bị kẹt
+              </button>
+            </div>
             <table>
               <thead>
                 <tr>
                   <th>Task ID</th>
                   <th>Keyword</th>
+                  <th>Limit</th>
                   <th>Status</th>
+                  <th>Partial</th>
                   <th></th>
                 </tr>
               </thead>
@@ -592,16 +611,41 @@ export default function App() {
                   <tr key={task._id}>
                     <td>{task._id.slice(0, 8)}</td>
                     <td>{task.keyword}</td>
-                    <td>{task.status}</td>
+                    <td>{task.result_limit}</td>
                     <td>
+                      <span style={{
+                        padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600,
+                        background: task.status === "success" ? "rgba(34,197,94,0.15)" : task.status === "error" ? "rgba(239,68,68,0.15)" : task.status === "processing" ? "rgba(59,130,246,0.15)" : "rgba(251,191,36,0.15)",
+                        color: task.status === "success" ? "#4ade80" : task.status === "error" ? "#f87171" : task.status === "processing" ? "#60a5fa" : "#fbbf24",
+                      }}>
+                        {task.status === "pending" && "⏳ Chờ"}
+                        {task.status === "processing" && "🔄 Đang chạy"}
+                        {task.status === "success" && "✅ Xong"}
+                        {task.status === "error" && "❌ Lỗi"}
+                      </span>
+                    </td>
+                    <td>{task.partial_result?.length || task.result?.length || "—"}</td>
+                    <td style={{ display: "flex", gap: 6 }}>
                       {task.status === "success" && (
                         <button onClick={() => fetchTaskDetail(task._id)}>
-                          Xem kết quả
+                          👁 Kết quả
                         </button>
                       )}
-                      {task.status === "error" && task.partial_result?.length > 0 && (
-                        <button onClick={() => fetchTaskDetail(task._id)} style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
-                          Xem kết quả (partial: {task.partial_result.length})
+                      {task.status === "error" && (
+                        <>
+                          <button onClick={() => setErrorDetailTask(task)} style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
+                            👁 Xem lỗi
+                          </button>
+                          {task.partial_result?.length > 0 && (
+                            <button onClick={() => fetchTaskDetail(task._id)} style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
+                              📊 Partial ({task.partial_result.length})
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {task.status === "processing" && (
+                        <button onClick={() => setErrorDetailTask(task)} style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
+                          👁 Chi tiết
                         </button>
                       )}
                     </td>
@@ -884,6 +928,105 @@ export default function App() {
               <a href={selectedRow.url} target="_blank" className="maps-btn">
                 📍 Mở Google Maps
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ERROR DETAIL MODAL ===== */}
+      {errorDetailTask && (
+        <div className="modal-overlay" onClick={() => setErrorDetailTask(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: 16 }}>
+                {errorDetailTask.status === "error" ? "❌ Chi tiết lỗi" : "🔄 Chi tiết task"}
+              </h2>
+              <button className="close-btn" onClick={() => setErrorDetailTask(null)}>✕</button>
+            </div>
+
+            <div className="modal-grid">
+              <div>
+                <span className="label">Task ID</span>
+                <span style={{ fontSize: 12, fontFamily: "monospace" }}>{errorDetailTask._id}</span>
+              </div>
+
+              <div>
+                <span className="label">Keyword</span>
+                <span>{errorDetailTask.keyword}</span>
+              </div>
+
+              <div>
+                <span className="label">Address</span>
+                <span>{errorDetailTask.address || "—"}</span>
+              </div>
+
+              <div>
+                <span className="label">Limit</span>
+                <span>{errorDetailTask.result_limit}</span>
+              </div>
+
+              <div>
+                <span className="label">Status</span>
+                <span style={{
+                  padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600,
+                  background: errorDetailTask.status === "error" ? "rgba(239,68,68,0.15)" : "rgba(59,130,246,0.15)",
+                  color: errorDetailTask.status === "error" ? "#f87171" : "#60a5fa",
+                }}>
+                  {errorDetailTask.status}
+                </span>
+              </div>
+
+              <div>
+                <span className="label">Partial data</span>
+                <span>{errorDetailTask.partial_result?.length || 0} places</span>
+              </div>
+
+              <div>
+                <span className="label">Deep website</span>
+                <span>{errorDetailTask.deep_scan_website ? "✔ Bật" : "✖ Tắt"}</span>
+              </div>
+
+              <div>
+                <span className="label">Deep reviews</span>
+                <span>{errorDetailTask.deep_scan_reviews ? "✔ Bật" : "✖ Tắt"}</span>
+              </div>
+
+              <div className="full">
+                <span className="label">Tạo lúc</span>
+                <span>{errorDetailTask.created_at ? new Date(errorDetailTask.created_at).toLocaleString("vi-VN") : "—"}</span>
+              </div>
+
+              <div className="full">
+                <span className="label">Cập nhật</span>
+                <span>{errorDetailTask.updated_at ? new Date(errorDetailTask.updated_at).toLocaleString("vi-VN") : "—"}</span>
+              </div>
+
+              {errorDetailTask.error_message && (
+                <div className="full">
+                  <span className="label">Lỗi</span>
+                  <div style={{
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    color: "#fca5a5",
+                    marginTop: 4,
+                  }}>
+                    {errorDetailTask.error_message}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              {errorDetailTask.partial_result?.length > 0 && (
+                <button onClick={() => { fetchTaskDetail(errorDetailTask._id); setErrorDetailTask(null); }} style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "8px 16px", cursor: "pointer" }}>
+                  📊 Xem partial data ({errorDetailTask.partial_result.length} places)
+                </button>
+              )}
             </div>
           </div>
         </div>

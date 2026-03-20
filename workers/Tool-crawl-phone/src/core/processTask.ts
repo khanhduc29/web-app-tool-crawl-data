@@ -6,11 +6,12 @@ import { updateTask, updatePartialResult } from "../api/crawlTask.api";
 import { crawlWebsiteContact } from "./crawlWebsiteContact";
 import { crawlReviews } from "./crawlReviews";
 import { deepScanPlace } from "./deepScanPlace";
-import { delay } from "../utils/delay";
 
 const TASK_TIMEOUT_MS = 15 * 60 * 1000; // 15 phút
 const PARTIAL_SAVE_BATCH = 20;           // Lưu tạm mỗi 20 kết quả
 const WEBSITE_CONCURRENCY = 3;           // Crawl 3 website đồng thời
+const REVIEW_CONCURRENCY = 5;            // Crawl 5 reviews đồng thời
+const DEEP_SCAN_CONCURRENCY = 5;         // Deep scan 5 places đồng thời
 
 /**
  * Crawl batch website song song (3 website cùng lúc)
@@ -60,8 +61,9 @@ async function batchCrawlWebsites(
           const webPage = await context.newPage();
           try {
             results[idx].socials = await crawlWebsiteContact(webPage, website);
-          } catch {
-            console.log(`⚠️ Website crawl failed: ${website}`);
+          } catch (err: any) {
+            console.log(`⚠️ Website crawl failed: ${website} — ${err.message}`);
+            results[idx].socials = { error: err.message };
           } finally {
             await webPage.close();
           }
@@ -82,17 +84,25 @@ export async function processTask(task: CrawlTask) {
   console.log(`🚀 Start task ${task._id}`);
   console.log(`🧾 keyword="${task.keyword}", address="${task.address}", limit=${task.result_limit}`);
 
-  // ⏰ Timeout protection
+  // ⏰ Timeout protection — NOW ACTUALLY ABORTS
+  let isTimedOut = false;
   const timeoutId = setTimeout(() => {
-    console.error(`⏰ Task ${task._id} TIMEOUT (${TASK_TIMEOUT_MS / 60000} min)`);
+    isTimedOut = true;
+    console.error(`⏰ Task ${task._id} TIMEOUT (${TASK_TIMEOUT_MS / 60000} min) → ABORTING`);
   }, TASK_TIMEOUT_MS);
+
+  function checkTimeout() {
+    if (isTimedOut) throw new Error("TASK_TIMEOUT");
+  }
+
+  let context: any = null;
 
   try {
 
     /**
      * 1️⃣ Open browser context
      */
-    const context = await createBrowser();
+    context = await createBrowser();
     const page = await context.newPage();
 
     /**
@@ -104,6 +114,8 @@ export async function processTask(task: CrawlTask) {
       task.address
     );
 
+    checkTimeout();
+
     /**
      * 3️⃣ Crawl places (scroll + extract)
      */
@@ -111,6 +123,8 @@ export async function processTask(task: CrawlTask) {
       page,
       task.result_limit
     );
+
+    checkTimeout();
 
     /**
      * 4️⃣ Partial save after scroll
@@ -127,6 +141,8 @@ export async function processTask(task: CrawlTask) {
       console.log(`🌐 Deep scan website ENABLED | ${results.length} places`);
 
       for (let i = 0; i < results.length; i += WEBSITE_CONCURRENCY) {
+        checkTimeout();
+
         const end = Math.min(i + WEBSITE_CONCURRENCY, results.length);
 
         await batchCrawlWebsites(context, results, page, i, end);
@@ -141,55 +157,78 @@ export async function processTask(task: CrawlTask) {
     }
 
     /**
-     * 6️⃣ Deep scan reviews
+     * 6️⃣ Deep scan reviews — PARALLEL BATCHES (5 cùng lúc)
      */
     if (task.deep_scan_reviews && results.length > 0) {
 
-      console.log(`⭐ Deep scan reviews ENABLED | ${results.length} places`);
+      console.log(`⭐ Deep scan reviews ENABLED | ${results.length} places | concurrency=${REVIEW_CONCURRENCY}`);
 
-      for (let i = 0; i < results.length; i++) {
-        if (!results[i].url) continue;
+      for (let i = 0; i < results.length; i += REVIEW_CONCURRENCY) {
+        checkTimeout();
 
-        const reviewPage = await context.newPage();
-        try {
-          results[i].reviews = await crawlReviews(reviewPage, results[i].url!, task.review_limit || 20);
-          console.log(`⭐ ${i + 1}/${results.length} ${results[i].name}: ${results[i].reviews?.length || 0} reviews`);
-        } catch {
-          console.log(`⚠️ Review crawl failed: ${results[i].name}`);
-        } finally {
-          await reviewPage.close();
-        }
+        const batchEnd = Math.min(i + REVIEW_CONCURRENCY, results.length);
+        const batchItems = results.slice(i, batchEnd);
 
-        // Partial save mỗi 10 businesses
-        if ((i + 1) % 10 === 0) {
-          await updatePartialResult(task._id, results);
-        }
+        await Promise.allSettled(
+          batchItems.map(async (place, batchIdx) => {
+            const idx = i + batchIdx;
+            if (!results[idx].url) return;
+
+            const reviewPage = await context.newPage();
+            try {
+              results[idx].reviews = await crawlReviews(
+                reviewPage,
+                results[idx].url!,
+                task.review_limit || 20
+              );
+              console.log(`⭐ ${idx + 1}/${results.length} ${results[idx].name}: ${results[idx].reviews?.length || 0} reviews`);
+            } catch (err: any) {
+              console.log(`⚠️ Review crawl failed: ${results[idx].name} — ${err.message}`);
+            } finally {
+              await reviewPage.close();
+            }
+          })
+        );
+
+        // Partial save mỗi batch
+        await updatePartialResult(task._id, results);
+
+        console.log(`⭐ Review batch ${i + 1}-${batchEnd}/${results.length} done`);
       }
     }
 
     /**
-     * 7️⃣ Deep scan Google Maps places
+     * 7️⃣ Deep scan Google Maps places — PARALLEL BATCHES
      */
     if (task.deep_scan) {
 
-      console.log("🧠 Deep scan place detail ENABLED");
+      console.log(`🧠 Deep scan place detail ENABLED | concurrency=${DEEP_SCAN_CONCURRENCY}`);
 
-      for (let i = 0; i < results.length; i++) {
-        const detailPage = await context.newPage();
-        try {
-          results[i] = await deepScanPlace(detailPage, results[i]);
-        } catch {
-          console.log(`⚠️ Deep scan failed: ${results[i].name}`);
-        } finally {
-          await detailPage.close();
-        }
+      for (let i = 0; i < results.length; i += DEEP_SCAN_CONCURRENCY) {
+        checkTimeout();
+
+        const batchEnd = Math.min(i + DEEP_SCAN_CONCURRENCY, results.length);
+
+        await Promise.allSettled(
+          results.slice(i, batchEnd).map(async (place, batchIdx) => {
+            const idx = i + batchIdx;
+            const detailPage = await context.newPage();
+            try {
+              results[idx] = await deepScanPlace(detailPage, results[idx]);
+            } catch (err: any) {
+              console.log(`⚠️ Deep scan failed: ${results[idx].name} — ${err.message}`);
+            } finally {
+              await detailPage.close();
+            }
+          })
+        );
       }
     }
 
     await context.close();
 
     /**
-     * 7️⃣ Update task → success
+     * 8️⃣ Update task → success
      */
     await updateTask(task._id, {
       status: "success",
@@ -201,6 +240,9 @@ export async function processTask(task: CrawlTask) {
   } catch (err: any) {
 
     console.error(`❌ Task ${task._id} error`, err.message);
+
+    // Đóng browser context nếu còn mở
+    try { await context?.close(); } catch {}
 
     await updateTask(task._id, {
       status: "error",
